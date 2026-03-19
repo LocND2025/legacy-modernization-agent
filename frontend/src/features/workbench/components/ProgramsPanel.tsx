@@ -57,16 +57,67 @@ export interface ProgramRow {
   status?: string
 }
 
-const ARTEFACT_TABS: { id: ArtefactKind; label: string; count: number }[] = [
-  { id: 'programs', label: 'Programs', count: 40 },
-  { id: 'copybooks', label: 'Copybooks', count: 23 },
-  { id: 'jcl', label: 'JCL Jobs', count: 12 },
-  { id: 'cics', label: 'CICS/BMS', count: 7 },
-  { id: 'ims', label: 'IMS', count: 4 },
-  { id: 'database', label: 'Database', count: 9 },
-  { id: 'scheduler', label: 'Scheduler', count: 5 },
-  { id: 'config', label: 'Config', count: 19 },
-  { id: 'all', label: 'All artefacts', count: 119 },
+const getFileName = (row: ProgramRow) => row.path.split('/').pop() || row.name
+const getFileExtension = (row: ProgramRow) =>
+  getFileName(row).split('.').pop()?.toLowerCase() ?? ''
+const includesAny = (value: string, terms: string[]) => terms.some((term) => value.includes(term))
+
+const ARTEFACT_TAB_DEFS: {
+  id: ArtefactKind
+  label: string
+  predicate: (row: ProgramRow) => boolean
+}[] = [
+  {
+    id: 'programs',
+    label: 'Programs',
+    predicate: (row) => ['cbl', 'cob', 'cobol', 'pco'].includes(getFileExtension(row)),
+  },
+  {
+    id: 'copybooks',
+    label: 'Copybooks',
+    predicate: (row) => ['cpy', 'copy'].includes(getFileExtension(row)),
+  },
+  {
+    id: 'jcl',
+    label: 'JCL Jobs',
+    predicate: (row) => ['jcl', 'job', 'proc', 'cntl'].includes(getFileExtension(row)),
+  },
+  {
+    id: 'cics',
+    label: 'CICS/BMS',
+    predicate: (row) =>
+      includesAny(`${row.path} ${row.name}`.toLowerCase(), ['cics', 'bms', 'mapset']),
+  },
+  {
+    id: 'ims',
+    label: 'IMS',
+    predicate: (row) => includesAny(`${row.path} ${row.name}`.toLowerCase(), ['ims', 'psb', 'dbd']),
+  },
+  {
+    id: 'database',
+    label: 'Database',
+    predicate: (row) =>
+      includesAny(`${row.path} ${row.name}`.toLowerCase(), ['db2', 'sql', 'ddl', 'database']),
+  },
+  {
+    id: 'scheduler',
+    label: 'Scheduler',
+    predicate: (row) =>
+      includesAny(`${row.path} ${row.name}`.toLowerCase(), ['scheduler', 'sched', 'controlm', 'autosys']),
+  },
+  {
+    id: 'config',
+    label: 'Config',
+    predicate: (row) =>
+      ['cfg', 'conf', 'json', 'yaml', 'yml', 'xml', 'ini', 'properties'].includes(
+        getFileExtension(row),
+      ) || includesAny(`${row.path} ${row.name}`.toLowerCase(), ['config', 'settings']),
+  },
+  {
+    id: 'all',
+    label: 'All artefacts',
+    predicate: () => true,
+  },
 ]
 
 const PROGRAM_ROWS: ProgramRow[] = [
@@ -266,8 +317,26 @@ export function ProgramsPanel({ programs }: ProgramsPanelProps) {
   const [toast, setToast] = useState<string | null>(null)
   const rowsPerPage = 20
 
+  const sourceRows = useMemo(() => programs ?? PROGRAM_ROWS, [programs])
+
+  const artefactTabs = useMemo(
+    () =>
+      ARTEFACT_TAB_DEFS.map((tab) => ({
+        id: tab.id,
+        label: tab.label,
+        count: sourceRows.filter(tab.predicate).length,
+      })),
+    [sourceRows],
+  )
+
+  const rowsByActiveTab = useMemo(() => {
+    const tab = ARTEFACT_TAB_DEFS.find((item) => item.id === activeTab)
+    if (!tab) return sourceRows
+    return sourceRows.filter(tab.predicate)
+  }, [activeTab, sourceRows])
+
   const filteredRows = useMemo(() => {
-    let rows = programs ?? PROGRAM_ROWS
+    let rows = rowsByActiveTab
 
     const trimmed = query.trim().toLowerCase()
     if (trimmed) {
@@ -296,7 +365,7 @@ export function ProgramsPanel({ programs }: ProgramsPanelProps) {
     }
 
     return sorted
-  }, [programs, query, sort])
+  }, [rowsByActiveTab, query, sort])
 
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage))
   const currentPage = Math.min(page, pageCount - 1)
@@ -312,11 +381,7 @@ export function ProgramsPanel({ programs }: ProgramsPanelProps) {
   const startIndex = currentPage * rowsPerPage + 1
   const endIndex = Math.min(filteredRows.length, (currentPage + 1) * rowsPerPage)
 
-  const getDisplayFileName = (row: ProgramRow) => {
-    const fromPath = row.path.split('/').pop()
-    const fromName = row.name.split('/').pop()
-    return fromPath || fromName || row.name
-  }
+  const getDisplayFileName = (row: ProgramRow) => getFileName(row)
 
   const blurActiveElement = () => {
     const active = document.activeElement
@@ -502,7 +567,7 @@ export function ProgramsPanel({ programs }: ProgramsPanelProps) {
             },
           }}
         >
-          {ARTEFACT_TABS.map((tab) => (
+          {artefactTabs.map((tab) => (
             <Tab
               key={tab.id}
               value={tab.id}
