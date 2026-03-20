@@ -17,6 +17,7 @@ public interface INeo4jService
     Task<bool> UpdateCobolFileStatusAsync(string id, string status);
     Task<bool> DeleteCobolFileAsync(string id);
     Task SaveDesignDocumentAsync(string cobolFileId, string fileName, string content, string type);
+    Task DeleteDesignDocumentsForCobolFileAsync(string cobolFileId);
     Task<List<DesignDocumentNode>> GetDesignDocumentsAsync(string cobolFileId);
 }
 
@@ -345,6 +346,25 @@ public class Neo4jService : INeo4jService, IAsyncDisposable
             {
                 await tx.RunAsync("MATCH (c:CobolFile {id: $id}) DETACH DELETE c");
                 return true;
+            });
+        }
+        finally
+        {
+            await session.CloseAsync();
+        }
+    }
+
+    public async Task DeleteDesignDocumentsForCobolFileAsync(string cobolFileId)
+    {
+        var session = _driver.AsyncSession();
+        try
+        {
+            await session.ExecuteWriteAsync(async tx =>
+            {
+                await tx.RunAsync(
+                    @"MATCH (c:CobolFile {id: $cobolFileId})-[:HAS_DESIGN]->(d:DesignDocument)
+                    DETACH DELETE d",
+                    new { cobolFileId });
             });
         }
         finally

@@ -20,6 +20,13 @@ export interface SessionAnalysisStatus {
   progressPercentage: number
 }
 
+export interface SessionAnalysisFileStatus {
+  fileId: string
+  fileName: string
+  relativePath?: string | null
+  status: string
+}
+
 export interface SessionProgramItem {
   fileId: string
   fileName: string
@@ -121,6 +128,14 @@ export async function getSessionAnalysisStatus(
   return request<SessionAnalysisStatus>(`/sessions/${sessionId}/analysis/status`)
 }
 
+export async function getSessionAnalysisFiles(
+  sessionId: string,
+): Promise<SessionAnalysisFileStatus[]> {
+  return request<SessionAnalysisFileStatus[]>(
+    `/sessions/${sessionId}/analysis/files`,
+  )
+}
+
 export async function getSessionDocuments(
   sessionId: string,
 ): Promise<SessionDocumentItem[]> {
@@ -142,4 +157,19 @@ export async function getSessionSourceTree(
 export async function getFileContent(fileId: string): Promise<string> {
   const result = await request<{ content: string }>(`/files/${fileId}/content`)
   return result.content
+}
+
+export interface AnalyzeCobolFileResponse {
+  message: string
+  outputPath?: string | null
+  fileId: string
+}
+
+/** Phân tích lại một file COBOL và sinh lại design documents (markdown, json, mermaid, summary). */
+export async function analyzeCobolFile(
+  fileId: string,
+): Promise<AnalyzeCobolFileResponse> {
+  return request<AnalyzeCobolFileResponse>(`/analyze/${encodeURIComponent(fileId)}`, {
+    method: 'POST',
+  })
 }

@@ -5,6 +5,7 @@ import {
   Chip,
   InputAdornment,
   Paper,
+  Skeleton,
   TextField,
   Typography,
   Button,
@@ -65,6 +66,7 @@ export function SessionsPage() {
   const [query, setQuery] = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [sessions, setSessions] = useState<SessionSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -73,10 +75,11 @@ export function SessionsPage() {
       try {
         const data = await getSessions()
         if (!active) return
-
         setSessions(data.map(mapSessionToSummary))
       } catch (error) {
         console.error(error)
+      } finally {
+        if (active) setIsLoading(false)
       }
     }
 
@@ -424,25 +427,65 @@ export function SessionsPage() {
               </Box>
             </Box>
 
-            {cobol.length > 0 && (
-              <SessionGroup
-                title="COBOL"
-                count={cobol.length}
-                sessions={cobol}
-                onOpen={handleOpen}
-                viewMode={viewMode}
-              />
-            )}
+            {isLoading ? (
+              <SessionsListSkeleton />
+            ) : (
+              <>
+                {cobol.length > 0 && (
+                  <SessionGroup
+                    title="COBOL"
+                    count={cobol.length}
+                    sessions={cobol}
+                    onOpen={handleOpen}
+                    viewMode={viewMode}
+                  />
+                )}
 
-            {ungrouped.length > 0 && (
-              <SessionGroup
-                title="Ungrouped Projects"
-                count={ungrouped.length}
-                sessions={ungrouped}
-                onOpen={handleOpen}
-                viewMode={viewMode}
-                sx={{ mt: 4 }}
-              />
+                {ungrouped.length > 0 && (
+                  <SessionGroup
+                    title="Ungrouped Projects"
+                    count={ungrouped.length}
+                    sessions={ungrouped}
+                    onOpen={handleOpen}
+                    viewMode={viewMode}
+                    sx={{ mt: 4 }}
+                  />
+                )}
+
+                {!isLoading && cobol.length === 0 && ungrouped.length === 0 && (
+                  <Box
+                    className="glass-card"
+                    sx={{
+                      p: 4,
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 1.5,
+                    }}
+                  >
+                    <FolderOutlinedIcon sx={{ fontSize: 36, color: 'var(--text-tertiary)' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      No sessions yet
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>
+                      Start a new AI analysis session to see it here.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => navigate('/sessions/new')}
+                      sx={{
+                        mt: 0.5,
+                        borderRadius: 'var(--fare-radius-pill)',
+                        px: 3,
+                      }}
+                    >
+                      Start new session
+                    </Button>
+                  </Box>
+                )}
+              </>
             )}
           </Box>
 
@@ -513,6 +556,99 @@ function FeaturePill({ icon, title, description }: FeaturePillProps) {
 }
 
 
+function SessionsListSkeleton() {
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 1.5 }}>
+        <Skeleton variant="text" width={80} height={22} sx={{ bgcolor: 'var(--glass-hover-bg)' }} />
+        <Skeleton variant="text" width={60} height={18} sx={{ bgcolor: 'var(--glass-hover-bg)' }} />
+      </Box>
+      <Box
+        sx={{
+          borderRadius: 'var(--fare-radius-md)',
+          overflow: 'hidden',
+          border: '1px solid var(--glass-border)',
+          bgcolor: 'var(--glass-bg)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
+        }}
+      >
+        {/* Header row skeleton */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 2.5fr) 1fr 0.9fr 60px',
+            px: 2,
+            py: 0.75,
+            borderBottom: '1px solid var(--glass-border)',
+            bgcolor: 'var(--bg-elevated)',
+          }}
+        >
+          {['Session name / ID', 'Created', 'Status', ''].map((label, i) => (
+            <Skeleton key={i} variant="text" width={label.length * 7} height={16} sx={{ bgcolor: 'var(--glass-hover-bg)' }} />
+          ))}
+        </Box>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Box
+            key={i}
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 2.5fr) 1fr 0.9fr 60px',
+              px: 2,
+              py: 1.1,
+              alignItems: 'center',
+              borderTop: i === 0 ? 'none' : '1px solid var(--glass-border)',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Skeleton variant="rounded" width={32} height={32} sx={{ borderRadius: 2, bgcolor: 'var(--glass-hover-bg)', flexShrink: 0 }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Skeleton variant="text" width={140} height={16} sx={{ bgcolor: 'var(--glass-hover-bg)' }} />
+                <Skeleton variant="text" width={80} height={13} sx={{ bgcolor: 'var(--glass-hover-bg)' }} />
+              </Box>
+            </Box>
+            <Skeleton variant="text" width={90} height={14} sx={{ bgcolor: 'var(--glass-hover-bg)' }} />
+            <Skeleton variant="rounded" width={64} height={22} sx={{ borderRadius: 999, bgcolor: 'var(--glass-hover-bg)' }} />
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Skeleton variant="text" width={14} height={14} sx={{ bgcolor: 'var(--glass-hover-bg)' }} />
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
+function getStatusChipSx(statusLabel: string) {
+  const s = statusLabel.toLowerCase()
+  if (s === 'running') {
+    return {
+      bgcolor: 'var(--warning-bg)',
+      border: '1px solid var(--warning-border)',
+      color: 'var(--warning)',
+    }
+  }
+  if (s === 'completed') {
+    return {
+      bgcolor: 'var(--success-bg)',
+      border: '1px solid var(--success-border)',
+      color: 'var(--success)',
+    }
+  }
+  if (s === 'failed') {
+    return {
+      bgcolor: 'var(--danger-bg)',
+      border: '1px solid var(--danger-border)',
+      color: 'var(--danger)',
+    }
+  }
+  return {
+    bgcolor: 'var(--glass-bg)',
+    border: '1px solid var(--glass-border)',
+    color: 'var(--text-secondary)',
+  }
+}
+
 interface SessionGroupProps {
   title: string
   count: number
@@ -579,10 +715,12 @@ function SessionGroup({
       {viewMode === 'list' ? (
         <Box
           sx={{
-            borderRadius: 1,
+            borderRadius: 'var(--fare-radius-md)',
             overflow: 'hidden',
-            border: '1px solid var(--border)',
-            bgcolor: 'var(--bg-surface)',
+            border: '1px solid var(--glass-border)',
+            bgcolor: 'var(--glass-bg)',
+            backdropFilter: 'var(--glass-blur)',
+            WebkitBackdropFilter: 'var(--glass-blur)',
           }}
         >
           {/* header row */}
@@ -592,8 +730,8 @@ function SessionGroup({
               gridTemplateColumns: 'minmax(0, 2.5fr) 1fr 0.9fr 60px',
               px: 2,
               py: 0.75,
-            borderBottom: '1px solid var(--border)',
-            bgcolor: 'var(--bg-elevated)',
+              borderBottom: '1px solid var(--glass-border)',
+              bgcolor: 'var(--bg-elevated)',
             }}
           >
             <Typography
@@ -626,6 +764,7 @@ function SessionGroup({
           {sessions.map((session, index) => (
             <Box
               key={session.id}
+              className="stagger-item"
               onClick={() => onOpen(session)}
               sx={{
                 display: 'grid',
@@ -636,6 +775,8 @@ function SessionGroup({
                 cursor: 'pointer',
                 borderTop:
                   index === 0 ? 'none' : '1px solid var(--glass-border)',
+                animationDelay: `${index * 40}ms`,
+                transition: 'background-color 0.15s ease',
                 '&:hover': {
                   bgcolor: 'var(--glass-hover-bg)',
                 },
@@ -703,8 +844,15 @@ function SessionGroup({
               <Chip
                 label={session.statusLabel}
                 size="small"
-                color="success"
-                sx={{ borderRadius: 999, height: 22, justifySelf: 'flex-start' }}
+                sx={{
+                  borderRadius: 999,
+                  height: 22,
+                  justifySelf: 'flex-start',
+                  fontSize: 11,
+                  fontWeight: 500,
+                  '& .MuiChip-label': { px: 1 },
+                  ...getStatusChipSx(session.statusLabel),
+                }}
               />
 
               {/* actions */}
@@ -732,30 +880,32 @@ function SessionGroup({
             gap: 1.5,
           }}
         >
-          {sessions.map((session) => (
+          {sessions.map((session, index) => (
             <Paper
               key={session.id}
-              className="glass-card"
+              className="glass-card stagger-item"
               sx={{
-                borderRadius: 2,
+                borderRadius: 'var(--fare-radius-md)',
+                color: 'var(--text-primary)',
                 px: 2,
                 py: 1.6,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 2,
                 cursor: 'pointer',
-              bgcolor: 'var(--glass-bg)',
-              border: '1px solid var(--glass-border)',
-              boxShadow: 'var(--glass-shadow)',
-              minHeight: 120,
-              transition:
+                bgcolor: 'var(--glass-bg)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--glass-shadow)',
+                minHeight: 120,
+                animationDelay: `${index * 50}ms`,
+                transition:
                   'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background-color 0.16s ease',
-              '&:hover': {
+                '&:hover': {
                   bgcolor: 'var(--glass-hover-bg)',
                   border: '1px solid var(--accent)',
                   boxShadow: 'var(--glass-glow)',
                   transform: 'translateY(-2px)',
-              },
+                },
               }}
               onClick={() => onOpen(session)}
             >
@@ -825,8 +975,14 @@ function SessionGroup({
                 <Chip
                   label={session.statusLabel}
                   size="small"
-                  color="success"
-                  sx={{ borderRadius: 999, height: 22 }}
+                  sx={{
+                    borderRadius: 999,
+                    height: 22,
+                    fontSize: 11,
+                    fontWeight: 500,
+                    '& .MuiChip-label': { px: 1 },
+                    ...getStatusChipSx(session.statusLabel),
+                  }}
                 />
               </Box>
             </Paper>

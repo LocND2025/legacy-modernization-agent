@@ -302,8 +302,8 @@ export const theme = createTheme({
         '.glass-inset': {
           backgroundColor: 'var(--bg-elevated)',
           border: '1px solid var(--border)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
           transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
           '&:hover': {
             borderColor: 'var(--accent)',
@@ -312,6 +312,22 @@ export const theme = createTheme({
             borderColor: 'var(--accent)',
             boxShadow: 'var(--focus-ring)',
           },
+        },
+
+        /* Page & panel transition — referenced by className="page-transition" */
+        '.page-transition': {
+          animation: 'page-slide-fade 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both',
+        },
+
+        /* Stagger entrance for list items — apply via inline animationDelay per index */
+        '@keyframes stagger-fade-up': {
+          '0%': { opacity: 0, transform: 'translateY(10px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+
+        '.stagger-item': {
+          opacity: 0,
+          animation: 'stagger-fade-up 280ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards',
         },
 
         '@keyframes pulse-dot': {
@@ -350,6 +366,14 @@ export const theme = createTheme({
         '@media (prefers-reduced-motion: reduce)': {
           '.reveal': {
             transition: 'none',
+            opacity: 1,
+            transform: 'none',
+          },
+          '.page-transition': {
+            animation: 'none',
+          },
+          '.stagger-item': {
+            animation: 'none',
             opacity: 1,
             transform: 'none',
           },
@@ -392,6 +416,8 @@ export const theme = createTheme({
           borderRadius: 16,
           backgroundColor: 'var(--bg-surface)',
           border: '1px solid var(--border)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
           transition: 'background-color 0.3s ease, border-color 0.2s ease',
         },
       },
@@ -428,6 +454,74 @@ export const theme = createTheme({
           border: '1px solid var(--border)',
           boxShadow: 'var(--glass-shadow)',
           color: 'var(--text-primary)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
+        },
+        arrow: {
+          color: 'var(--bg-elevated)',
+        },
+      },
+    },
+
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'var(--scrim)',
+          backdropFilter: 'blur(6px) saturate(120%)',
+          WebkitBackdropFilter: 'blur(6px) saturate(120%)',
+          /* Exclude invisible backdrops (e.g. speed-dial) */
+          '&.MuiBackdrop-invisible': {
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
+            backgroundColor: 'transparent',
+          },
+        },
+      },
+    },
+
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: 'var(--bg-elevated)',
+          border: '1px solid var(--glass-border)',
+          boxShadow: 'var(--glass-shadow), var(--glass-glow)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
+          borderRadius: 16,
+          transition: 'background-color 0.3s ease, border-color 0.2s ease',
+        },
+      },
+    },
+
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          color: 'var(--text-primary)',
+          fontSize: 15,
+          fontWeight: 600,
+          paddingBottom: 12,
+          borderBottom: '1px solid var(--glass-border)',
+        },
+      },
+    },
+
+    MuiDialogContent: {
+      styleOverrides: {
+        root: {
+          color: 'var(--text-primary)',
+        },
+        dividers: {
+          borderColor: 'var(--glass-border)',
+        },
+      },
+    },
+
+    MuiDialogActions: {
+      styleOverrides: {
+        root: {
+          borderTop: '1px solid var(--glass-border)',
+          padding: '12px 20px',
+          gap: 8,
         },
       },
     },

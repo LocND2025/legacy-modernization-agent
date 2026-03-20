@@ -1,6 +1,9 @@
 import {
+  Alert,
   Box,
   Button,
+  CircularProgress,
+  Collapse,
   MenuItem,
   Select,
   TextField,
@@ -28,6 +31,7 @@ export function NewSessionPage() {
   const [selectedZip, setSelectedZip] = useState<File | null>(null)
   const [selectedFolderFiles, setSelectedFolderFiles] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const navigate = useNavigate()
   const zipInputRef = useRef<HTMLInputElement | null>(null)
   const folderInputRef = useRef<HTMLInputElement | null>(null)
@@ -49,8 +53,9 @@ export function NewSessionPage() {
   }
 
   const handleStartAnalysis = async () => {
+    setErrorMsg(null)
     if (!selectedZip && selectedFolderFiles.length === 0) {
-      window.alert('Please choose a ZIP file or select a folder first.')
+      setErrorMsg('Please choose a ZIP file or select a folder first.')
       return
     }
 
@@ -69,7 +74,7 @@ export function NewSessionPage() {
     } catch (error) {
       console.error(error)
       const message = error instanceof Error ? error.message : 'Failed to start analysis'
-      window.alert(message)
+      setErrorMsg(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -431,11 +436,36 @@ export function NewSessionPage() {
             </Box>
           </Box>
 
+          <Collapse in={Boolean(errorMsg)} unmountOnExit>
+            <Alert
+              severity="error"
+              onClose={() => setErrorMsg(null)}
+              sx={{
+                mb: 2.5,
+                borderRadius: 'var(--fare-radius-md)',
+                bgcolor: 'var(--danger-bg)',
+                border: '1px solid var(--danger-border)',
+                color: 'var(--danger)',
+                '& .MuiAlert-icon': { color: 'var(--danger)' },
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+              }}
+            >
+              {errorMsg}
+            </Alert>
+          </Collapse>
+
           <Box sx={{ textAlign: 'center' }}>
             <Button
               variant="contained"
               size="large"
-              endIcon={<ArrowForwardIcon />}
+              endIcon={
+                isSubmitting ? (
+                  <CircularProgress size={16} sx={{ color: 'var(--bg-base)' }} />
+                ) : (
+                  <ArrowForwardIcon />
+                )
+              }
               onClick={handleStartAnalysis}
               disabled={isSubmitting}
               sx={{
@@ -445,10 +475,18 @@ export function NewSessionPage() {
                 backgroundColor: 'var(--accent)',
                 color: 'var(--bg-base)',
                 boxShadow: 'var(--glass-shadow)',
-                '&:hover': { backgroundColor: 'var(--accent-hover)' },
+                transition: 'background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease',
+                '&:hover:not(:disabled)': {
+                  backgroundColor: 'var(--accent-hover)',
+                  boxShadow: 'var(--glass-shadow), var(--glass-glow)',
+                },
+                '&:disabled': {
+                  opacity: 0.7,
+                  color: 'var(--bg-base)',
+                },
               }}
             >
-              {isSubmitting ? 'Starting analysis...' : 'Start AI analysis'}
+              {isSubmitting ? 'Starting analysis…' : 'Start AI analysis'}
             </Button>
           </Box>
         </Box>

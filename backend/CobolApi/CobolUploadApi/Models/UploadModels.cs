@@ -90,6 +90,14 @@ public class SessionAnalysisStatus
         TotalFiles <= 0 ? 0 : Math.Round((double)ProcessedFiles * 100 / TotalFiles, 2);
 }
 
+public class SessionAnalysisFileStatus
+{
+    public string FileId { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string? RelativePath { get; set; }
+    public string Status { get; set; } = "uploaded"; // uploaded | processing | analyzed | failed
+}
+
 public class SessionProgramItem
 {
     public string FileId { get; set; } = string.Empty;

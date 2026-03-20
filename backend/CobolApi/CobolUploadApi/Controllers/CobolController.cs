@@ -118,6 +118,30 @@ public class CobolController : ControllerBase
     }
 
     /// <summary>
+    /// Lấy trạng thái theo từng file trong phiên analysis
+    /// </summary>
+    [HttpGet("sessions/{sessionId}/analysis/files")]
+    [ProducesResponseType(typeof(List<SessionAnalysisFileStatus>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<SessionAnalysisFileStatus>>> GetSessionAnalysisFiles(string sessionId)
+    {
+        try
+        {
+            var files = await _storageService.GetSessionAnalysisFilesAsync(sessionId);
+            return Ok(files);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting analysis files for session {SessionId}", sessionId);
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Upload nhiều file vào cùng một session (multipart/form-data)
     /// </summary>
     [HttpPost("sessions/{sessionId}/files:bulk")]

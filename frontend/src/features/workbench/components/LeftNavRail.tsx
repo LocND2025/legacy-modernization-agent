@@ -46,7 +46,7 @@ export function LeftNavRail({ activeItem, onChange }: LeftNavRailProps) {
         width: 90,
         flexShrink: 0,
         height: '100%',
-        borderRadius: '18px',
+        borderRadius: 'var(--fare-radius-lg)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -61,7 +61,17 @@ export function LeftNavRail({ activeItem, onChange }: LeftNavRailProps) {
         return (
           <Tooltip key={item.key} title={item.label} placement="right" arrow>
             <Box
+              role="button"
+              tabIndex={0}
+              aria-label={item.label}
+              aria-pressed={isActive}
               onClick={() => onChange(item.key)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onChange(item.key)
+                }
+              }}
               sx={{
                 width: 68,
                 display: 'flex',
@@ -73,6 +83,7 @@ export function LeftNavRail({ activeItem, onChange }: LeftNavRailProps) {
                 borderRadius: '12px',
                 cursor: 'pointer',
                 position: 'relative',
+                outline: 'none',
                 bgcolor: isActive ? 'var(--glass-hover-bg)' : 'transparent',
                 border: isActive
                   ? '1px solid var(--accent)'
@@ -89,6 +100,11 @@ export function LeftNavRail({ activeItem, onChange }: LeftNavRailProps) {
                     ? '1px solid var(--accent-hover)'
                     : '1px solid var(--glass-border)',
                   transform: 'translateY(-2px)',
+                },
+                '&:focus-visible': {
+                  boxShadow: 'var(--focus-ring)',
+                  border: '1px solid var(--accent)',
+                  bgcolor: 'var(--glass-hover-bg)',
                 },
               }}
             >

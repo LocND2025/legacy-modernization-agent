@@ -34,7 +34,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import AutorenewIcon from '@mui/icons-material/Autorenew'
 import OpenInFullOutlinedIcon from '@mui/icons-material/OpenInFullOutlined'
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
-import { getFileContent } from '../../../api/cobolApi'
+import { analyzeCobolFile, getFileContent } from '../../../api/cobolApi'
 
 type ArtefactKind =
   | 'programs'
@@ -301,9 +301,14 @@ const SORT_OPTIONS = [
 
 interface ProgramsPanelProps {
   programs?: ProgramRow[]
+  /** Gọi sau khi backend phân tích lại xong (để refresh Docs / trạng thái). */
+  onRegenerateComplete?: (fileId: string) => void | Promise<void>
 }
 
-export function ProgramsPanel({ programs }: ProgramsPanelProps) {
+export function ProgramsPanel({
+  programs,
+  onRegenerateComplete,
+}: ProgramsPanelProps) {
   const [activeTab, setActiveTab] = useState<ArtefactKind>('programs')
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<string>('name-asc')
@@ -315,6 +320,7 @@ export function ProgramsPanel({ programs }: ProgramsPanelProps) {
   const [selectedContent, setSelectedContent] = useState<string>('')
   const [isLoadingContent, setIsLoadingContent] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [regeneratingFileId, setRegeneratingFileId] = useState<string | null>(null)
   const rowsPerPage = 20
 
   const sourceRows = useMemo(() => programs ?? PROGRAM_ROWS, [programs])
@@ -430,8 +436,22 @@ export function ProgramsPanel({ programs }: ProgramsPanelProps) {
     setInfoDialogOpen(true)
   }
 
-  const handleRegenerate = (row: ProgramRow) => {
-    setToast(`Re-generate requested for ${getDisplayFileName(row)}.`)
+  const handleRegenerate = async (row: ProgramRow) => {
+    if (!row.fileId) {
+      setToast(`Cannot re-generate: no file id for ${getDisplayFileName(row)}.`)
+      return
+    }
+    setRegeneratingFileId(row.fileId)
+    try {
+      await analyzeCobolFile(row.fileId)
+      setToast(`Design documents re-generated for ${getDisplayFileName(row)}.`)
+      await onRegenerateComplete?.(row.fileId)
+    } catch (error) {
+      console.error(error)
+      setToast(`Re-generate failed for ${getDisplayFileName(row)}.`)
+    } finally {
+      setRegeneratingFileId(null)
+    }
   }
 
   return (
@@ -810,15 +830,26 @@ export function ProgramsPanel({ programs }: ProgramsPanelProps) {
                           <VisibilityOutlinedIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Infor">
+                      <Tooltip title="Info">
                         <IconButton size="small" onClick={() => handleOpenInfo(row)}>
                           <InfoOutlinedIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Re-generate">
-                        <IconButton size="small" onClick={() => handleRegenerate(row)}>
-                          <AutorenewIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
+                      <Tooltip title="Re-generate design documents">
+                        <span>
+                          <IconButton
+                            size="small"
+                            disabled={!row.fileId || regeneratingFileId === row.fileId}
+                            onClick={() => void handleRegenerate(row)}
+                            aria-busy={regeneratingFileId === row.fileId}
+                          >
+                            {regeneratingFileId === row.fileId ? (
+                              <CircularProgress size={14} thickness={5} />
+                            ) : (
+                              <AutorenewIcon sx={{ fontSize: 16 }} />
+                            )}
+                          </IconButton>
+                        </span>
                       </Tooltip>
                     </Stack>
                   </TableCell>
@@ -947,7 +978,7 @@ export function ProgramsPanel({ programs }: ProgramsPanelProps) {
         maxWidth="sm"
       >
         <DialogTitle sx={{ color: 'var(--text-primary)' }}>
-          File Infor - {selectedRow ? getDisplayFileName(selectedRow) : ''}
+          File Info — {selectedRow ? getDisplayFileName(selectedRow) : ''}
         </DialogTitle>
         <DialogContent dividers>
           {selectedRow && (

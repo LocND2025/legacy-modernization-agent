@@ -304,6 +304,22 @@ public class CobolStorageService : ICobolStorageService
         return inferred;
     }
 
+    public async Task<List<SessionAnalysisFileStatus>> GetSessionAnalysisFilesAsync(string sessionId)
+    {
+        var files = await _neo4jService.GetCobolFilesBySessionAsync(sessionId);
+
+        return files
+            .Select(f => new SessionAnalysisFileStatus
+            {
+                FileId = f.Id,
+                FileName = f.FileName,
+                RelativePath = f.RelativePath ?? f.FileName,
+                Status = f.Status,
+            })
+            .OrderBy(f => f.RelativePath)
+            .ToList();
+    }
+
     public async Task<List<SessionProgramItem>> GetSessionProgramsAsync(string sessionId)
     {
         var files = await _neo4jService.GetCobolFilesBySessionAsync(sessionId);
@@ -445,6 +461,9 @@ public class CobolStorageService : ICobolStorageService
             
             // Cập nhật status đang xử lý
             await _neo4jService.UpdateCobolFileStatusAsync(fileId, "processing");
+
+            // Xóa design cũ để re-analyze không tạo bản trùng trong Neo4j
+            await _neo4jService.DeleteDesignDocumentsForCobolFileAsync(fileId);
             
             // TẠO DESIGN DOCUMENTS MẪU (không cần tool)
             _logger.LogInformation($"Creating design documents for {fileId}");

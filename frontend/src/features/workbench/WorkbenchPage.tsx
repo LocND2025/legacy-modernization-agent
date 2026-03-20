@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useMemo, useState } from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Box } from '@mui/material'
 import { GlobalTopNavbar } from './components/GlobalTopNavbar'
@@ -86,80 +86,120 @@ export function WorkbenchPage() {
     }
   }, [sessionId])
 
+  const reloadSessionWorkbenchData = useCallback(async (): Promise<{
+    documents: ProgramDocument[]
+    status: SessionAnalysisStatus
+  } | null> => {
+    if (!sessionId) return null
+    try {
+      const status = await getSessionAnalysisStatus(sessionId)
+
+      let docs: Awaited<ReturnType<typeof getSessionDocuments>> = []
+      let programItems: Awaited<ReturnType<typeof getSessionPrograms>> = []
+      let tree: Awaited<ReturnType<typeof getSessionSourceTree>> = []
+
+      try {
+        ;[docs, programItems, tree] = await Promise.all([
+          getSessionDocuments(sessionId),
+          getSessionPrograms(sessionId),
+          getSessionSourceTree(sessionId),
+        ])
+      } catch (panelError) {
+        console.warn(panelError)
+      }
+
+      const docCounts = docs.reduce<Record<string, number>>((acc, doc) => {
+        acc[doc.programCode] = (acc[doc.programCode] ?? 0) + 1
+        return acc
+      }, {})
+
+      const mappedDocs: ProgramDocument[] = docs.map((doc) => ({
+        id: doc.id,
+        fileId: doc.fileId,
+        code: doc.programCode,
+        name: doc.name,
+        count: docCounts[doc.programCode] ?? 1,
+        markdown: doc.content,
+      }))
+      setDocuments(mappedDocs)
+      setPrograms(
+        programItems.map((p) => ({
+          fileId: p.fileId,
+          name: p.fileName,
+          loc: p.loc,
+          type: 'BATCH',
+          tags: p.tags,
+          path: p.relativePath,
+          status: p.status,
+        })),
+      )
+      setSourceTree(tree)
+      setAnalysisStatus(status)
+
+      return { documents: mappedDocs, status }
+    } catch (error) {
+      console.error(error)
+      return null
+    }
+  }, [sessionId])
+
   useEffect(() => {
     if (!sessionId) return
 
     let active = true
     let timer: number | undefined
 
-    const load = async () => {
-      try {
-        const status = await getSessionAnalysisStatus(sessionId)
+    const poll = async () => {
+      const result = await reloadSessionWorkbenchData()
+      if (!active || !result) return
 
-        let docs: Awaited<ReturnType<typeof getSessionDocuments>> = []
-        let programItems: Awaited<ReturnType<typeof getSessionPrograms>> = []
-        let tree: Awaited<ReturnType<typeof getSessionSourceTree>> = []
-
-        try {
-          ;[docs, programItems, tree] = await Promise.all([
-            getSessionDocuments(sessionId),
-            getSessionPrograms(sessionId),
-            getSessionSourceTree(sessionId),
-          ])
-        } catch (panelError) {
-          // If panel endpoints are not available yet, keep dashboard alive.
-          console.warn(panelError)
-        }
-
-        if (!active) return
-
-        const docCounts = docs.reduce<Record<string, number>>((acc, doc) => {
-          acc[doc.programCode] = (acc[doc.programCode] ?? 0) + 1
-          return acc
-        }, {})
-
-        const mappedDocs: ProgramDocument[] = docs.map((doc) => ({
-          id: doc.id,
-          code: doc.programCode,
-          count: docCounts[doc.programCode] ?? 1,
-          markdown: doc.content,
-        }))
-        setDocuments(mappedDocs)
-        setPrograms(
-          programItems.map((p) => ({
-            fileId: p.fileId,
-            name: p.fileName,
-            loc: p.loc,
-            type: 'BATCH',
-            tags: p.tags,
-            path: p.relativePath,
-            status: p.status,
-          })),
-        )
-        setSourceTree(tree)
-        setAnalysisStatus(status)
-
-        const shouldPoll =
-          status.status === 'queued' || status.status === 'running'
-        if (shouldPoll) {
-          timer = window.setTimeout(load, 2000)
-        }
-      } catch (error) {
-        console.error(error)
+      const shouldPoll =
+        result.status.status === 'queued' || result.status.status === 'running'
+      if (shouldPoll) {
+        timer = window.setTimeout(poll, 2000)
       }
     }
 
-    load()
+    poll()
     return () => {
       active = false
       if (timer) {
         window.clearTimeout(timer)
       }
     }
-  }, [sessionId])
+  }, [sessionId, reloadSessionWorkbenchData])
+
+  const handleProgramRegenerateComplete = useCallback(
+    async (fileId: string) => {
+      // Retry briefly to handle eventual consistency between analyze and docs query.
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const result = await reloadSessionWorkbenchData()
+        if (!result) return
+        const next = result.documents.find((d) => d.fileId === fileId)
+        if (next) {
+          setSelectedDocumentId(next.id)
+          return
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 500))
+      }
+    },
+    [reloadSessionWorkbenchData],
+  )
 
   useEffect(() => {
-    if (!selectedDocumentId && documents.length > 0) {
+    if (documents.length === 0) {
+      if (selectedDocumentId !== null) {
+        setSelectedDocumentId(null)
+      }
+      return
+    }
+
+    const stillExists = selectedDocumentId
+      ? documents.some((doc) => doc.id === selectedDocumentId)
+      : false
+
+    // If current selection vanished after re-gen, fallback to newest first item.
+    if (!selectedDocumentId || !stillExists) {
       setSelectedDocumentId(documents[0].id)
     }
   }, [documents, selectedDocumentId])
@@ -221,7 +261,7 @@ export function WorkbenchPage() {
                 width: 450,
                 flexShrink: 0,
                 height: '100%',
-                borderRadius: '16px',
+                borderRadius: 'var(--fare-radius-lg)',
                 bgcolor: 'var(--bg-surface)',
                 overflow: 'hidden',
               }}
@@ -243,7 +283,7 @@ export function WorkbenchPage() {
                 flex: 1,
                 minWidth: 0,
                 height: '100%',
-                borderRadius: '16px',
+                borderRadius: 'var(--fare-radius-lg)',
                 bgcolor: 'var(--bg-surface)',
                 overflow: 'hidden',
               }}
@@ -260,7 +300,7 @@ export function WorkbenchPage() {
               flex: 1,
               minWidth: 0,
               height: '100%',
-              borderRadius: '16px',
+              borderRadius: 'var(--fare-radius-lg)',
               bgcolor: 'var(--bg-surface)',
               overflow: 'hidden',
               position: 'relative',
@@ -290,7 +330,10 @@ export function WorkbenchPage() {
                 >
                   <Box className="page-transition" sx={{ height: '100%' }}>
                     {panel.key === 'programs' ? (
-                      <ProgramsPanel programs={programs} />
+                      <ProgramsPanel
+                        programs={programs}
+                        onRegenerateComplete={handleProgramRegenerateComplete}
+                      />
                     ) : panel.key === 'source' ? (
                       <SourcePanel sessionId={sessionId} treeData={sourceTree} />
                     ) : (
@@ -303,7 +346,7 @@ export function WorkbenchPage() {
           </Box>
         )}
 
-        <FloatingStatusDock />
+        <FloatingStatusDock sessionId={sessionId ?? ''} analysisStatus={analysisStatus} />
       </Box>
     </Box>
   )

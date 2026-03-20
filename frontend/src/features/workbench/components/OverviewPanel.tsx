@@ -236,10 +236,11 @@ export function OverviewPanel() {
           <Typography
             sx={{
               fontSize: 11,
-              color: 'primary.main',
+              color: 'var(--accent)',
               fontWeight: 600,
               cursor: 'pointer',
-              '&:hover': { textDecoration: 'underline' },
+              transition: 'opacity 0.15s ease',
+              '&:hover': { textDecoration: 'underline', opacity: 0.8 },
             }}
           >
             View all (738)
@@ -374,10 +375,11 @@ export function OverviewPanel() {
           <Typography
             sx={{
               fontSize: 11,
-              color: 'primary.main',
+              color: 'var(--accent)',
               fontWeight: 600,
               cursor: 'pointer',
-              '&:hover': { textDecoration: 'underline' },
+              transition: 'opacity 0.15s ease',
+              '&:hover': { textDecoration: 'underline', opacity: 0.8 },
             }}
           >
             View edges

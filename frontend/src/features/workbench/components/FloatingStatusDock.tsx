@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
@@ -11,8 +11,13 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import OpenInFullOutlinedIcon from '@mui/icons-material/OpenInFullOutlined'
+import {
+  getSessionAnalysisFiles,
+  type SessionAnalysisFileStatus,
+  type SessionAnalysisStatus,
+} from '../../../api/cobolApi'
 
-type MetricColor = 'info' | 'warning' | 'success' | 'idle'
+type MetricColor = 'info' | 'warning' | 'success' | 'danger' | 'idle'
 
 const COLOR_MAP: Record<MetricColor, { dot: string; glow: string }> = {
   idle: {
@@ -31,26 +36,113 @@ const COLOR_MAP: Record<MetricColor, { dot: string; glow: string }> = {
     dot: 'var(--success)',
     glow: 'var(--success-border)',
   },
+  danger: {
+    dot: 'var(--danger)',
+    glow: 'var(--danger-border)',
+  },
 }
 
-export function FloatingStatusDock() {
+export interface FloatingStatusDockProps {
+  sessionId: string
+  analysisStatus: SessionAnalysisStatus | null
+}
+
+export function FloatingStatusDock({ sessionId, analysisStatus }: FloatingStatusDockProps) {
   const [open, setOpen] = useState(false)
 
-  const metrics = [
-    { label: 'Queued', value: 0, color: 'info' as MetricColor, icon: <AutorenewOutlinedIcon /> },
-    {
-      label: 'Running',
-      value: 0,
-      color: 'warning' as MetricColor,
-      icon: <AccessTimeOutlinedIcon />,
-    },
-    {
-      label: 'Success',
-      value: 39,
-      color: 'success' as MetricColor,
-      icon: <CheckCircleOutlineOutlinedIcon />,
-    },
-  ]
+  const [analysisFiles, setAnalysisFiles] = useState<SessionAnalysisFileStatus[]>([])
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false)
+  const [filesError, setFilesError] = useState<string | null>(null)
+
+  const totalFiles = analysisStatus?.totalFiles ?? 0
+  const processedFiles = analysisStatus?.processedFiles ?? 0
+  const failedFiles = analysisStatus?.failedFiles ?? 0
+  const queuedFiles = Math.max(0, totalFiles - processedFiles - failedFiles)
+
+  const statusLower = analysisStatus?.status?.toLowerCase() ?? 'idle'
+  const isRunning = statusLower === 'running'
+  const isQueued = statusLower === 'queued'
+  const isCompleted = statusLower === 'completed' || statusLower.startsWith('complete')
+
+  const metrics = useMemo(() => {
+    return [
+      {
+        label: 'Queued',
+        value: queuedFiles,
+        color: queuedFiles > 0 ? 'info' : 'idle',
+        icon: <AutorenewOutlinedIcon />,
+      },
+      {
+        label: 'Running',
+        value: isRunning || isQueued ? processedFiles : 0,
+        color: isRunning || isQueued ? 'warning' : 'idle',
+        icon: <AccessTimeOutlinedIcon />,
+      },
+      {
+        label: 'Done',
+        value: isCompleted ? processedFiles : 0,
+        color: isCompleted ? (failedFiles > 0 ? 'danger' : 'success') : 'idle',
+        icon: <CheckCircleOutlineOutlinedIcon />,
+      },
+    ] as Array<{
+      label: string
+      value: number
+      color: MetricColor
+      icon: ReactNode
+    }>
+  }, [queuedFiles, isRunning, isQueued, processedFiles, isCompleted, failedFiles])
+
+  useEffect(() => {
+    if (!open) return
+    if (!sessionId) return
+
+    let active = true
+    const fetchFiles = async () => {
+      setIsLoadingFiles(true)
+      setFilesError(null)
+      try {
+        const data = await getSessionAnalysisFiles(sessionId)
+        if (!active) return
+        setAnalysisFiles(data)
+      } catch (e) {
+        if (!active) return
+        setFilesError(e instanceof Error ? e.message : 'Failed to load files')
+      } finally {
+        if (active) setIsLoadingFiles(false)
+      }
+    }
+
+    fetchFiles()
+
+    const shouldPoll = statusLower === 'queued' || statusLower === 'running'
+    if (!shouldPoll) return () => { active = false }
+
+    const t = window.setInterval(fetchFiles, 2000)
+    return () => {
+      active = false
+      window.clearInterval(t)
+    }
+  }, [open, sessionId, statusLower])
+
+  const { processingFiles, pendingFiles, completedFiles } = useMemo(() => {
+    const processing: SessionAnalysisFileStatus[] = []
+    const pending: SessionAnalysisFileStatus[] = []
+    const completed: SessionAnalysisFileStatus[] = []
+
+    for (const f of analysisFiles) {
+      const s = (f.status ?? '').toLowerCase()
+      if (s === 'processing') processing.push(f)
+      else if (s === 'analyzed') completed.push(f)
+      else if (s === 'failed') completed.push(f)
+      else pending.push(f)
+    }
+
+    return {
+      processingFiles: processing,
+      pendingFiles: pending,
+      completedFiles: completed,
+    }
+  }, [analysisFiles])
 
   return (
     <Box
@@ -183,7 +275,7 @@ export function FloatingStatusDock() {
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            borderRadius: '18px',
+            borderRadius: 'var(--fare-radius-lg)',
             transform: open ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.96)',
             opacity: open ? 1 : 0,
             transition: 'transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.18s ease',
@@ -201,12 +293,12 @@ export function FloatingStatusDock() {
               gap: 1,
             }}
           >
-            <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
               Generation Status
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Typography sx={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                39 tasks
+                {totalFiles} files
               </Typography>
               <IconButton size="small" sx={{ color: 'var(--text-secondary)' }}>
                 <OpenInFullOutlinedIcon sx={{ fontSize: 15 }} />
@@ -224,7 +316,7 @@ export function FloatingStatusDock() {
             </Box>
           </Box>
 
-          {/* Tasks list */}
+          {/* Files list */}
           <Box
             sx={{
               flex: 1,
@@ -234,139 +326,187 @@ export function FloatingStatusDock() {
               py: 1.25,
               display: 'flex',
               flexDirection: 'column',
-              gap: 1,
+              gap: 1.25,
             }}
           >
-            {MOCK_TASKS.map((task) => (
-              <Box
-                key={task.id}
-                sx={{
-                  borderRadius: 1.5,
+            {filesError && (
+              <Typography sx={{ fontSize: 12.5, color: 'var(--danger)' }}>
+                {filesError}
+              </Typography>
+            )}
+
+            {!isLoadingFiles && analysisFiles.length === 0 && (
+              <Typography sx={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                No files found for this session yet.
+              </Typography>
+            )}
+
+            {(() => {
+              const getBadgeSx = (fileStatus: string) => {
+                const s = fileStatus.toLowerCase()
+                if (s === 'processing') {
+                  return {
+                    bgcolor: 'var(--warning-bg)',
+                    border: '1px solid var(--warning-border)',
+                    color: 'var(--warning)',
+                    label: 'Processing',
+                  }
+                }
+                if (s === 'analyzed') {
+                  return {
+                    bgcolor: 'var(--success-bg)',
+                    border: '1px solid var(--success-border)',
+                    color: 'var(--success)',
+                    label: 'Done',
+                  }
+                }
+                if (s === 'failed') {
+                  return {
+                    bgcolor: 'var(--danger-bg)',
+                    border: '1px solid var(--danger-border)',
+                    color: 'var(--danger)',
+                    label: 'Failed',
+                  }
+                }
+                return {
+                  bgcolor: 'var(--glass-bg)',
                   border: '1px solid var(--glass-border)',
-                  bgcolor: 'var(--scrim)',
-                  px: 1.25,
-                  py: 0.85,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.4,
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                  }}
-                >
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>
-                    {task.name}
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                    }}
-                  >
+                  color: 'var(--text-secondary)',
+                  label: 'Pending',
+                }
+              }
+
+              const renderRows = (rows: SessionAnalysisFileStatus[]) =>
+                rows.map((f) => {
+                  const s = (f.status ?? '').toLowerCase()
+                  const badge = getBadgeSx(s)
+                  return (
                     <Box
+                      key={f.fileId}
                       sx={{
-                        px: 0.7,
-                        py: 0.1,
-                        borderRadius: 999,
+                        borderRadius: 1.5,
                         border: '1px solid var(--glass-border)',
-                        fontSize: 10,
-                        color: 'var(--text-secondary)',
+                        bgcolor: 'var(--bg-elevated)',
+                        px: 1.25,
+                        py: 0.8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 1,
+                        transition:
+                          'background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease',
+                        '&:hover': {
+                          bgcolor: 'var(--glass-hover-bg)',
+                          borderColor: 'var(--glass-border-strong)',
+                        },
                       }}
                     >
-                      #{task.batch}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: 999,
+                            bgcolor: badge.color,
+                            boxShadow: `0 0 10px ${badge.color}`,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: 12.5,
+                            fontWeight: 500,
+                            color: 'var(--text-primary)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: 190,
+                          }}
+                          title={f.relativePath ?? f.fileName}
+                        >
+                          {f.fileName}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          px: 0.75,
+                          py: 0.1,
+                          borderRadius: 999,
+                          border: badge.border,
+                          bgcolor: badge.bgcolor,
+                          color: badge.color,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {badge.label}
+                      </Box>
                     </Box>
-                    <CheckCircleOutlineOutlinedIcon
-                      sx={{ fontSize: 16, color: 'var(--success)' }}
-                    />
+                  )
+                })
+
+              const ProcessingSection = (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}>
+                    <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Processing
+                    </Typography>
+                    <Typography sx={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
+                      {processingFiles.length}
+                    </Typography>
                   </Box>
+                  {renderRows(processingFiles.length ? processingFiles : analysisStatus?.currentFileName ? [{
+                    fileId: analysisStatus.currentFileId ?? 'current',
+                    fileName: analysisStatus.currentFileName ?? '',
+                    relativePath: analysisStatus.currentFileName ?? '',
+                    status: 'processing',
+                  }] : [])}
                 </Box>
-                <Typography sx={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                  {task.duration} · {task.time}
-                </Typography>
-                <Typography
-                  component="div"
-                  sx={{
-                    fontSize: 11,
-                    color: 'var(--text-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.75,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      bgcolor: COLOR_MAP.info.dot,
-                    }}
-                  />
-                  {task.program}
-                </Typography>
-              </Box>
-            ))}
+              )
+
+              const PendingSection = (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}>
+                    <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Pending
+                    </Typography>
+                    <Typography sx={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
+                      {pendingFiles.length}
+                    </Typography>
+                  </Box>
+                  {renderRows(pendingFiles)}
+                </Box>
+              )
+
+              const CompletedSection = (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}>
+                    <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Completed
+                    </Typography>
+                    <Typography sx={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
+                      {completedFiles.length}
+                    </Typography>
+                  </Box>
+                  {renderRows(completedFiles)}
+                </Box>
+              )
+
+              return (
+                <>
+                  {ProcessingSection}
+                  <Box sx={{ borderTop: '1px solid var(--glass-border)', opacity: 0.9 }} />
+                  {PendingSection}
+                  <Box sx={{ borderTop: '1px solid var(--glass-border)', opacity: 0.9 }} />
+                  {CompletedSection}
+                </>
+              )
+            })()}
           </Box>
         </Paper>
       </Grow>
     </Box>
   )
 }
-
-interface MockTask {
-  id: string
-  name: string
-  batch: number
-  duration: string
-  time: string
-  program: string
-}
-
-const MOCK_TASKS: MockTask[] = [
-  {
-    id: '1',
-    name: 'COBOL Detail Design',
-    batch: 2,
-    duration: '555 LNs',
-    time: '17:12',
-    program: 'HD89M160.cbl',
-  },
-  {
-    id: '2',
-    name: 'COBOL Basic Design',
-    batch: 1,
-    duration: '1M 05s',
-    time: '17:09',
-    program: 'HD89A012.cbl',
-  },
-  {
-    id: '3',
-    name: 'COBOL Detail Design',
-    batch: 5,
-    duration: '1M 14s',
-    time: '17:07',
-    program: 'HD89A012.cbl',
-  },
-  {
-    id: '4',
-    name: 'JCL Job Design (COBOL-specific)',
-    batch: 1,
-    duration: '19s',
-    time: '16:42',
-    program: 'HD89M110.jcl',
-  },
-  {
-    id: '5',
-    name: 'Screen Design (BD/DD)',
-    batch: 1,
-    duration: '43s',
-    time: '16:38',
-    program: 'HD89M140.cbl',
-  },
-]
 

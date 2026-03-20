@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
@@ -14,7 +14,11 @@ import SearchIcon from '@mui/icons-material/Search'
 
 export type ProgramDocument = {
   id: string
+  /** CobolFile id — dùng để đồng bộ sau re-analyze */
+  fileId?: string
   code: string
+  /** Backend fileName (vd: HD89M110_design.md) */
+  name: string
   count: number
   markdown: string
 }
@@ -94,16 +98,16 @@ flowchart TD
 const PROGRAM_GROUP_LABEL = 'Programs'
 
 export const PROGRAM_DOCUMENTS: ProgramDocument[] = [
-  { id: 'HD89M150', code: 'HD89M150', count: 2, markdown: createDetailDesignMarkdown('HD89M150') },
-  { id: 'HD89A012', code: 'HD89A012', count: 2, markdown: createDetailDesignMarkdown('HD89A012') },
-  { id: 'HD89M110', code: 'HD89M110', count: 1, markdown: createDetailDesignMarkdown('HD89M110') },
-  { id: 'HD89M130', code: 'HD89M130', count: 2, markdown: createDetailDesignMarkdown('HD89M130') },
-  { id: 'HD89M160', code: 'HD89M160', count: 1, markdown: createDetailDesignMarkdown('HD89M160') },
-  { id: 'HD89A300', code: 'HD89A300', count: 2, markdown: createDetailDesignMarkdown('HD89A300') },
-  { id: 'HD89M100', code: 'HD89M100', count: 1, markdown: createDetailDesignMarkdown('HD89M100') },
-  { id: 'HD89A001', code: 'HD89A001', count: 1, markdown: createDetailDesignMarkdown('HD89A001') },
-  { id: 'HD89Q140', code: 'HD89Q140', count: 2, markdown: createDetailDesignMarkdown('HD89Q140') },
-  { id: 'CONDSET6', code: 'CONDSET6', count: 2, markdown: createDetailDesignMarkdown('CONDSET6') },
+  { id: 'HD89M150', code: 'HD89M150', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('HD89M150') },
+  { id: 'HD89A012', code: 'HD89A012', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('HD89A012') },
+  { id: 'HD89M110', code: 'HD89M110', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('HD89M110') },
+  { id: 'HD89M130', code: 'HD89M130', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('HD89M130') },
+  { id: 'HD89M160', code: 'HD89M160', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('HD89M160') },
+  { id: 'HD89A300', code: 'HD89A300', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('HD89A300') },
+  { id: 'HD89M100', code: 'HD89M100', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('HD89M100') },
+  { id: 'HD89A001', code: 'HD89A001', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('HD89A001') },
+  { id: 'HD89Q140', code: 'HD89Q140', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('HD89Q140') },
+  { id: 'CONDSET6', code: 'CONDSET6', name: 'design.md', count: 1, markdown: createDetailDesignMarkdown('CONDSET6') },
 ]
 
 export interface DocumentsPanelProps {
@@ -121,15 +125,54 @@ export function DocumentsPanel({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const data = documents ?? PROGRAM_DOCUMENTS
 
-  const filteredPrograms = useMemo(() => {
+  const filteredDocuments = useMemo(() => {
     const trimmed = query.trim().toLowerCase()
     if (!trimmed) return data
-    return data.filter((doc) =>
-      doc.code.toLowerCase().includes(trimmed),
+    return data.filter(
+      (doc) =>
+        doc.code.toLowerCase().includes(trimmed) ||
+        doc.name.toLowerCase().includes(trimmed),
     )
   }, [data, query])
 
-  const totalPrograms = data.length
+  const folders = useMemo(() => {
+    const byCode = new Map<string, ProgramDocument[]>()
+    for (const doc of filteredDocuments) {
+      const list = byCode.get(doc.code) ?? []
+      list.push(doc)
+      byCode.set(doc.code, list)
+    }
+
+    return Array.from(byCode.entries())
+      .map(([code, items]) => {
+        const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name))
+        return {
+          code,
+          items: sorted,
+          count: sorted.length,
+        }
+      })
+      .sort((a, b) => a.code.localeCompare(b.code))
+  }, [filteredDocuments])
+
+  const totalFolders = folders.length
+
+  const getChildLabel = (doc: ProgramDocument) => {
+    const prefix = `${doc.code}_`
+    if (doc.name.startsWith(prefix)) return doc.name.slice(prefix.length)
+    return doc.name
+  }
+
+  // Ensure the selected document's folder is expanded (helps after re-generate).
+  useEffect(() => {
+    if (!selectedId) return
+    const selectedDoc = data.find((d) => d.id === selectedId)
+    if (!selectedDoc) return
+    setExpanded((prev) => ({
+      ...prev,
+      [selectedDoc.code]: true,
+    }))
+  }, [selectedId, data])
 
   return (
     <Box
@@ -140,7 +183,7 @@ export function DocumentsPanel({
         bgcolor: 'transparent',
       }}
     >
-      <DocumentsPanelHeader total={totalPrograms} />
+      <DocumentsPanelHeader total={totalFolders} />
 
       {/* Search */}
       <Box sx={{ px: 1.5, pb: 1, pt: 1.25 }}>
@@ -212,7 +255,7 @@ export function DocumentsPanel({
           }}
         >
           <Typography sx={{ fontSize: 10, color: 'var(--text-secondary)', fontWeight: 600 }}>
-            {filteredPrograms.length}
+            {totalFolders}
           </Typography>
         </Box>
       </Box>
@@ -227,7 +270,7 @@ export function DocumentsPanel({
           pb: 1.5,
         }}
       >
-        {filteredPrograms.length === 0 ? (
+        {folders.length === 0 ? (
           <Box sx={{ px: 2, py: 2.5 }}>
             <Typography sx={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
               No documents yet. Start analysis and wait for generated markdown files.
@@ -235,19 +278,17 @@ export function DocumentsPanel({
           </Box>
         ) : (
         <List dense disablePadding>
-          {filteredPrograms.map((doc) => {
-            const isSelected = doc.id === selectedId
-            const isExpanded = expanded[doc.id] ?? false
-
+          {folders.map((folder) => {
+            const isExpanded = expanded[folder.code] ?? false
             const toggleExpanded = () => {
               setExpanded((prev) => ({
                 ...prev,
-                [doc.id]: !isExpanded,
+                [folder.code]: !isExpanded,
               }))
             }
 
             return (
-              <Box key={doc.id} sx={{ mb: 0.25 }}>
+              <Box key={folder.code} sx={{ mb: 0.25 }}>
                 {/* Folder row */}
                 <ListItemButton
                   onClick={toggleExpanded}
@@ -304,7 +345,7 @@ export function DocumentsPanel({
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {doc.code}
+                      {folder.code}
                     </Typography>
                     <Box
                       sx={{
@@ -323,98 +364,105 @@ export function DocumentsPanel({
                           lineHeight: 1.4,
                         }}
                       >
-                        {doc.count}
+                        {folder.count}
                       </Typography>
                     </Box>
                   </Box>
                 </ListItemButton>
 
-                {/* Child file row */}
-                {isExpanded && (
-                  <ListItemButton
-                    onClick={() => onSelect(doc.id)}
-                    selected={isSelected}
-                    sx={{
-                      borderRadius: '10px',
-                      mx: 1.75,
-                      mt: 0.15,
-                      px: 1.8,
-                      py: 0.6,
-                      position: 'relative',
-                      overflow: 'hidden',
-                      border: '1px solid transparent',
-                      transition: 'all 0.18s ease',
-                      '&.Mui-selected': {
-                        background: 'var(--glass-hover-bg)',
-                        borderColor: 'var(--accent)',
-                        boxShadow:
-                          'var(--glass-inset-highlight-subtle), var(--glass-shadow)',
-                        '&:hover': {
-                          background: 'var(--glass-hover-bg)',
-                          borderColor: 'var(--accent-hover)',
-                        },
-                        '&::before': {
-                          content: '""',
-                          position: 'absolute',
-                          left: 0,
-                          top: '20%',
-                          bottom: '20%',
-                          width: 3,
-                          borderRadius: '0 3px 3px 0',
-                          background: 'var(--accent)',
-                        },
-                      },
-                      '&:not(.Mui-selected):hover': {
-                        bgcolor: 'var(--glass-bg)',
-                        borderColor: 'var(--glass-border)',
-                      },
-                    }}
-                  >
-                    <ListItemText
-                      disableTypography
-                      primary={
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 1,
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 0.75,
-                            }}
-                          >
-                            <DescriptionOutlinedIcon
+                {/* Child file rows */}
+                {isExpanded &&
+                  folder.items.map((doc) => {
+                    const isSelected = doc.id === selectedId
+                    return (
+                      <ListItemButton
+                        key={doc.id}
+                        onClick={() => onSelect(doc.id)}
+                        selected={isSelected}
+                        sx={{
+                          borderRadius: '10px',
+                          mx: 1.75,
+                          mt: 0.15,
+                          px: 1.8,
+                          py: 0.6,
+                          position: 'relative',
+                          overflow: 'hidden',
+                          border: '1px solid transparent',
+                          transition: 'all 0.18s ease',
+                          '&.Mui-selected': {
+                            background: 'var(--glass-hover-bg)',
+                            borderColor: 'var(--accent)',
+                            boxShadow:
+                              'var(--glass-inset-highlight-subtle), var(--glass-shadow)',
+                            '&:hover': {
+                              background: 'var(--glass-hover-bg)',
+                              borderColor: 'var(--accent-hover)',
+                            },
+                            '&::before': {
+                              content: '""',
+                              position: 'absolute',
+                              left: 0,
+                              top: '20%',
+                              bottom: '20%',
+                              width: 3,
+                              borderRadius: '0 3px 3px 0',
+                              background: 'var(--accent)',
+                            },
+                          },
+                          '&:not(.Mui-selected):hover': {
+                            bgcolor: 'var(--glass-bg)',
+                            borderColor: 'var(--glass-border)',
+                          },
+                        }}
+                      >
+                        <ListItemText
+                          disableTypography
+                          primary={
+                            <Box
                               sx={{
-                                fontSize: 16,
-                                color: isSelected ? 'var(--accent)' : 'var(--text-secondary)',
-                              }}
-                            />
-                            <Typography
-                              sx={{
-                                fontSize: 12.5,
-                                fontWeight: isSelected ? 600 : 500,
-                                color: isSelected ? 'var(--accent)' : 'var(--text-primary)',
-                                fontFeatureSettings: '"tnum" 1, "lnum" 1',
-                                letterSpacing: 0.1,
-                                transition: 'color 0.18s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 1,
                               }}
                             >
-                              detail_design.md
-                            </Typography>
-                          </Box>
-                          <Box
-                            sx={{ flexShrink: 0 }}
-                          />
-                        </Box>
-                      }
-                    />
-                  </ListItemButton>
-                )}
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.75,
+                                }}
+                              >
+                                <DescriptionOutlinedIcon
+                                  sx={{
+                                    fontSize: 16,
+                                    color: isSelected
+                                      ? 'var(--accent)'
+                                      : 'var(--text-secondary)',
+                                  }}
+                                />
+                                <Typography
+                                  sx={{
+                                    fontSize: 12.5,
+                                    fontWeight: isSelected ? 600 : 500,
+                                    color: isSelected
+                                      ? 'var(--accent)'
+                                      : 'var(--text-primary)',
+                                    fontFeatureSettings: '"tnum" 1, "lnum" 1',
+                                    letterSpacing: 0.1,
+                                    transition: 'color 0.18s ease',
+                                  }}
+                                >
+                                  {getChildLabel(doc)}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ flexShrink: 0 }} />
+                            </Box>
+                          }
+                        />
+                      </ListItemButton>
+                    )
+                  })}
               </Box>
             )
           })}

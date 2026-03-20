@@ -12,6 +12,7 @@ public interface ICobolStorageService
     Task<SessionBulkUploadResponse> SaveZipToSessionAsync(string sessionId, IFormFile zipFile, string? description);
     Task<SessionAnalysisStatus> StartSessionAnalysisAsync(string sessionId);
     Task<SessionAnalysisStatus> GetSessionAnalysisStatusAsync(string sessionId);
+    Task<List<SessionAnalysisFileStatus>> GetSessionAnalysisFilesAsync(string sessionId);
     Task<List<SessionProgramItem>> GetSessionProgramsAsync(string sessionId);
     Task<List<SessionDocumentItem>> GetSessionDocumentsAsync(string sessionId);
     Task<List<SourceTreeNode>> GetSessionSourceTreeAsync(string sessionId);
