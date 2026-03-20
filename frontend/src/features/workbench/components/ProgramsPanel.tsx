@@ -654,13 +654,24 @@ export function ProgramsPanel({
             minWidth: 110,
             borderRadius: 999,
             bgcolor: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+            '& .MuiSelect-icon': {
+              color: 'var(--text-secondary)',
+            },
+            '& .MuiSvgIcon-root': {
+              color: 'var(--text-secondary)',
+            },
             '.MuiOutlinedInput-notchedOutline': {
               borderColor: 'var(--glass-border)',
             },
           }}
         >
           {SORT_OPTIONS.map((opt) => (
-            <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: 12 }}>
+            <MenuItem
+              key={opt.id}
+              value={opt.id}
+              sx={{ fontSize: 12, color: 'var(--text-primary)' }}
+            >
               {opt.label}
             </MenuItem>
           ))}
@@ -877,29 +888,53 @@ export function ProgramsPanel({
               size="small"
               disabled={currentPage === 0}
               onClick={() => setPage(0)}
+              sx={{
+                color: 'var(--text-secondary)',
+                '&.Mui-disabled': {
+                  color: 'var(--glass-border)',
+                },
+              }}
             >
-              <FirstPageIcon sx={{ fontSize: 16 }} />
+              <FirstPageIcon sx={{ fontSize: 16, color: 'inherit' }} />
             </IconButton>
             <IconButton
               size="small"
               disabled={currentPage === 0}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
+              sx={{
+                color: 'var(--text-secondary)',
+                '&.Mui-disabled': {
+                  color: 'var(--glass-border)',
+                },
+              }}
             >
-              <ChevronLeftIcon sx={{ fontSize: 16 }} />
+              <ChevronLeftIcon sx={{ fontSize: 16, color: 'inherit' }} />
             </IconButton>
             <IconButton
               size="small"
               disabled={currentPage >= pageCount - 1}
               onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              sx={{
+                color: 'var(--text-secondary)',
+                '&.Mui-disabled': {
+                  color: 'var(--glass-border)',
+                },
+              }}
             >
-              <ChevronRightIcon sx={{ fontSize: 16 }} />
+              <ChevronRightIcon sx={{ fontSize: 16, color: 'inherit' }} />
             </IconButton>
             <IconButton
               size="small"
               disabled={currentPage >= pageCount - 1}
               onClick={() => setPage(pageCount - 1)}
+              sx={{
+                color: 'var(--text-secondary)',
+                '&.Mui-disabled': {
+                  color: 'var(--glass-border)',
+                },
+              }}
             >
-              <LastPageIcon sx={{ fontSize: 16 }} />
+              <LastPageIcon sx={{ fontSize: 16, color: 'inherit' }} />
             </IconButton>
           </Stack>
           <Typography sx={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>

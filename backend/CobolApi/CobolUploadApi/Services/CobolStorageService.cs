@@ -154,7 +154,7 @@ public class CobolStorageService : ICobolStorageService
             }
 
             var extension = Path.GetExtension(entry.FullName).ToLowerInvariant();
-            if (extension != ".cbl" && extension != ".cob" && extension != ".cpy" && extension != ".copy")
+            if (extension != ".cbl" && extension != ".cob" && extension != ".cpy" && extension != ".copy" && extension != ".jcl")
             {
                 continue;
             }

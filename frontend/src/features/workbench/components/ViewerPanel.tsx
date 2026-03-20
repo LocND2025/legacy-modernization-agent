@@ -1,5 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
@@ -18,6 +23,7 @@ export interface ViewerPanelProps {
 
 export function ViewerPanel({ selectedDocument }: ViewerPanelProps) {
   const isEmpty = !selectedDocument
+  const [isExpanded, setIsExpanded] = useState(false)
 
   useEffect(() => {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
@@ -26,8 +32,25 @@ export function ViewerPanel({ selectedDocument }: ViewerPanelProps) {
     mermaid.run()
   }, [selectedDocument])
 
+  const handleDownload = () => {
+    if (!selectedDocument) return
+    const blob = new Blob([selectedDocument.markdown], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    const baseName = selectedDocument.name?.trim() || `${selectedDocument.code}.md`
+    anchor.download = baseName
+      .replace(/[\\/:*?"<>|]+/g, '_')
+      .replace(/\s+/g, '_')
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
+  }
+
   return (
-    <Box
+    <>
+      <Box
       sx={{
         height: '100%',
         display: 'flex',
@@ -120,6 +143,7 @@ export function ViewerPanel({ selectedDocument }: ViewerPanelProps) {
                   color: 'var(--text-secondary)',
                   '&:hover': { bgcolor: 'var(--glass-hover-bg)', color: 'var(--text-primary)' },
                 }}
+                onClick={() => setIsExpanded(true)}
               >
                 <OpenInFullOutlinedIcon sx={{ fontSize: 15 }} />
               </IconButton>
@@ -131,6 +155,7 @@ export function ViewerPanel({ selectedDocument }: ViewerPanelProps) {
                   color: 'var(--text-secondary)',
                   '&:hover': { bgcolor: 'var(--glass-hover-bg)', color: 'var(--text-primary)' },
                 }}
+                onClick={handleDownload}
               >
                 <FileDownloadOutlinedIcon sx={{ fontSize: 15 }} />
               </IconButton>
@@ -169,7 +194,54 @@ export function ViewerPanel({ selectedDocument }: ViewerPanelProps) {
           <DocumentContent document={selectedDocument} />
         )}
       </Box>
-    </Box>
+      </Box>
+
+      <Dialog
+        open={isExpanded}
+        onClose={() => setIsExpanded(false)}
+        fullScreen
+        PaperProps={{
+          sx: {
+            bgcolor: 'var(--bg-base)',
+          },
+        }}
+      >
+      <DialogTitle sx={{ color: 'var(--text-primary)', fontWeight: 800, pt: 2 }}>
+        {selectedDocument?.name?.trim() || `${selectedDocument?.code ?? 'document'}.md`}
+      </DialogTitle>
+        <DialogContent
+          sx={{
+            p: 0,
+            height: 'calc(100vh - 64px)',
+            overflow: 'auto',
+          }}
+        >
+          {selectedDocument ? <DocumentContent document={selectedDocument} /> : null}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            position: 'sticky',
+            bottom: 0,
+            bgcolor: 'var(--bg-base)',
+            py: 1.5,
+            px: 3,
+          }}
+        >
+          <Button
+            variant="contained"
+            onClick={() => setIsExpanded(false)}
+            sx={{
+              borderRadius: 999,
+              backgroundColor: 'var(--accent)',
+              color: 'var(--bg-base)',
+              '&:hover': { backgroundColor: 'var(--accent-hover)' },
+            }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   )
 }
 

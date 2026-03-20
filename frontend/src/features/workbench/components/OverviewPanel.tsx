@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
@@ -6,24 +7,22 @@ import Typography from '@mui/material/Typography'
 import CodeOutlinedIcon from '@mui/icons-material/CodeOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined'
+import type { ProgramRow } from './ProgramsPanel'
 
-const METRIC_CARDS = [
+const METRIC_DEFS = [
   {
     id: 'cobol-programs',
     label: 'COBOL programs',
-    value: 35,
     icon: <CodeOutlinedIcon sx={{ fontSize: 18 }} />,
   },
   {
     id: 'jcl-files',
     label: 'JCL files',
-    value: 63,
     icon: <DescriptionOutlinedIcon sx={{ fontSize: 18 }} />,
   },
   {
     id: 'other-files',
     label: 'Other files',
-    value: 10,
     icon: <FolderOutlinedIcon sx={{ fontSize: 18 }} />,
   },
 ]
@@ -69,7 +68,45 @@ const SAMPLE_BUSINESS_PROGRAMS = [
   'CONDSET6.cbl',
 ]
 
-export function OverviewPanel() {
+const COBOL_EXTS = new Set(['.cbl', '.cob', '.cpy', '.copy'])
+const JCL_EXTS = new Set(['.jcl'])
+
+function getExtensionFromPath(path: string): string {
+  const last = path.split('/').pop() ?? path
+  const dot = last.lastIndexOf('.')
+  if (dot < 0) return ''
+  return last.slice(dot).toLowerCase()
+}
+
+export function OverviewPanel({ programs }: { programs: ProgramRow[] }) {
+  const counts = useMemo(() => {
+    let cobol = 0
+    let jcl = 0
+
+    for (const row of programs) {
+      const ext = getExtensionFromPath(row.path ?? row.name)
+      if (JCL_EXTS.has(ext)) {
+        jcl += 1
+      } else if (COBOL_EXTS.has(ext)) {
+        cobol += 1
+      }
+    }
+
+    const other = Math.max(0, programs.length - cobol - jcl)
+    return {
+      'cobol-programs': cobol,
+      'jcl-files': jcl,
+      'other-files': other,
+    } as Record<'cobol-programs' | 'jcl-files' | 'other-files', number>
+  }, [programs])
+
+  const detectedArtefacts = DETECTED_ARTEFACTS.map((label) => {
+    if (label.startsWith('JCL Files')) {
+      return `JCL Files · ${counts['jcl-files']}`
+    }
+    return label
+  })
+
   return (
     <Box
       sx={{
@@ -120,7 +157,7 @@ export function OverviewPanel() {
           gap: 1.75,
         }}
       >
-        {METRIC_CARDS.map((metric) => (
+        {METRIC_DEFS.map((metric) => (
           <Box
             key={metric.id}
             sx={{
@@ -184,6 +221,10 @@ export function OverviewPanel() {
                 letterSpacing: 0.8,
                 color: 'var(--text-secondary)',
                 fontWeight: 600,
+                display: 'block',
+                lineHeight: 1.25,
+                // Reserve space for 2 lines so value baseline aligns across cards
+                minHeight: 30,
               }}
             >
               {metric.label}
@@ -195,7 +236,7 @@ export function OverviewPanel() {
                 fontFeatureSettings: '"tnum" 1, "lnum" 1',
               }}
             >
-              {metric.value}
+              {counts[metric.id as keyof typeof counts]}
             </Typography>
           </Box>
         ))}
@@ -257,7 +298,7 @@ export function OverviewPanel() {
             '&::-webkit-scrollbar': { height: 6 },
           }}
         >
-          {DETECTED_ARTEFACTS.map((label) => (
+          {detectedArtefacts.map((label) => (
             <Chip
               key={label}
               label={label}

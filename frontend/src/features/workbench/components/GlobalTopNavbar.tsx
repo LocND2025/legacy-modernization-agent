@@ -134,7 +134,12 @@ export function GlobalTopNavbar() {
       position="sticky"
       color="inherit"
       className="glass-nav"
-      sx={{ zIndex: 100 }}
+      sx={{
+        zIndex: 100,
+        borderRadius: 0,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+      }}
     >
       <Toolbar sx={{ minHeight: 52, px: 3, gap: 2 }}>
         {/* Brand */}

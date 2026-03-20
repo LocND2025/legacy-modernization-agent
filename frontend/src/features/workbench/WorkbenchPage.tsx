@@ -41,6 +41,14 @@ export function WorkbenchPage() {
   const [analysisStatus, setAnalysisStatus] = useState<SessionAnalysisStatus | null>(null)
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null)
 
+  const docsBadge = useMemo(() => {
+    // `getSessionDocuments` trả về từng markdown document (vd: _design/_flow/_summary),
+    // nên badge "Docs" nên phản ánh tổng số items markdown.
+    return documents.length
+  }, [documents])
+
+  const programsBadge = useMemo(() => programs.length, [programs])
+
   const selectedDocument: ProgramDocument | null = useMemo(() => {
     if (!selectedDocumentId) return null
     return documents.find((doc) => doc.id === selectedDocumentId) ?? null
@@ -49,13 +57,13 @@ export function WorkbenchPage() {
   const panelDeck = useMemo(
     () =>
       [
-        { key: 'overview', node: <OverviewPanel /> },
+        { key: 'overview', node: <OverviewPanel programs={programs} /> },
         { key: 'programs', node: <ProgramsPanel /> },
         { key: 'source', node: <SourcePanel /> },
         { key: 'generate', node: <GeneratePanel /> },
         { key: 'templates', node: <TemplatesPanel /> },
       ] as const,
-    [],
+    [programs],
   )
 
   useEffect(() => {
@@ -249,6 +257,8 @@ export function WorkbenchPage() {
         <LeftNavRail
           activeItem={activeNav}
           onChange={(next) => startTransition(() => setActiveNav(next))}
+          docsBadge={docsBadge}
+          programsBadge={programsBadge}
         />
 
         {activeNav === 'docs' ? (

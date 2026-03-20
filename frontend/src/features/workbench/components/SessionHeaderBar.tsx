@@ -181,6 +181,12 @@ export function SessionHeaderBar({ session }: SessionHeaderBarProps) {
             fontSize: 12.5,
             fontWeight: 500,
             color: 'var(--text-primary)',
+            '& .MuiSelect-icon': {
+              color: 'var(--text-secondary)',
+            },
+            '& .MuiSvgIcon-root': {
+              color: 'var(--text-secondary)',
+            },
             '& .MuiSelect-select': {
               py: 0.65,
               px: 1.75,
@@ -197,9 +203,15 @@ export function SessionHeaderBar({ session }: SessionHeaderBarProps) {
             },
           }}
         >
-          <MenuItem value="jp" sx={{ fontSize: 12.5 }}>JP Japanese</MenuItem>
-          <MenuItem value="en" sx={{ fontSize: 12.5 }}>EN English</MenuItem>
-          <MenuItem value="fr" sx={{ fontSize: 12.5 }}>FR French</MenuItem>
+          <MenuItem value="jp" sx={{ fontSize: 12.5, color: 'var(--text-primary)' }}>
+            JP Japanese
+          </MenuItem>
+          <MenuItem value="en" sx={{ fontSize: 12.5, color: 'var(--text-primary)' }}>
+            EN English
+          </MenuItem>
+          <MenuItem value="fr" sx={{ fontSize: 12.5, color: 'var(--text-primary)' }}>
+            FR French
+          </MenuItem>
         </Select>
       </Box>
     </Box>

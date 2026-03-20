@@ -21,23 +21,35 @@ type NavItemKey =
 export interface LeftNavRailProps {
   activeItem: NavItemKey
   onChange: (key: NavItemKey) => void
+  docsBadge?: number
+  programsBadge?: number
 }
 
-const items: Array<{
-  key: NavItemKey
-  label: string
-  badge?: number
-  icon: React.ReactNode
-}> = [
-  { key: 'docs', label: 'Docs', badge: 16, icon: <DescriptionOutlinedIcon sx={{ fontSize: 20 }} /> },
-  { key: 'overview', label: 'Overview', icon: <DashboardOutlinedIcon sx={{ fontSize: 20 }} /> },
-  { key: 'programs', label: 'Programs', badge: 40, icon: <ListAltOutlinedIcon sx={{ fontSize: 20 }} /> },
-  { key: 'source', label: 'Source', icon: <CodeOutlinedIcon sx={{ fontSize: 20 }} /> },
-  { key: 'generate', label: 'Generate', icon: <AutoAwesomeOutlinedIcon sx={{ fontSize: 20 }} /> },
-  { key: 'templates', label: 'Templates', icon: <InsertDriveFileOutlinedIcon sx={{ fontSize: 20 }} /> },
-]
+export function LeftNavRail({ activeItem, onChange, docsBadge, programsBadge }: LeftNavRailProps) {
+  const items: Array<{
+    key: NavItemKey
+    label: string
+    badge?: number
+    icon: React.ReactNode
+  }> = [
+    {
+      key: 'docs',
+      label: 'Docs',
+      badge: docsBadge,
+      icon: <DescriptionOutlinedIcon sx={{ fontSize: 20 }} />,
+    },
+    { key: 'overview', label: 'Overview', icon: <DashboardOutlinedIcon sx={{ fontSize: 20 }} /> },
+    {
+      key: 'programs',
+      label: 'Programs',
+      badge: programsBadge,
+      icon: <ListAltOutlinedIcon sx={{ fontSize: 20 }} />,
+    },
+    { key: 'source', label: 'Source', icon: <CodeOutlinedIcon sx={{ fontSize: 20 }} /> },
+    { key: 'generate', label: 'Generate', icon: <AutoAwesomeOutlinedIcon sx={{ fontSize: 20 }} /> },
+    { key: 'templates', label: 'Templates', icon: <InsertDriveFileOutlinedIcon sx={{ fontSize: 20 }} /> },
+  ]
 
-export function LeftNavRail({ activeItem, onChange }: LeftNavRailProps) {
   return (
     <Paper
       elevation={0}

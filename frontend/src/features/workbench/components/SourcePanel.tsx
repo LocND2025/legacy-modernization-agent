@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import InputBase from '@mui/material/InputBase'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -173,6 +177,7 @@ export function SourcePanel({ sessionId, treeData }: SourcePanelProps) {
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [fileContent, setFileContent] = useState(MOCK_SOURCE_CONTENT)
+  const [isFullScreen, setIsFullScreen] = useState(false)
 
   useEffect(() => {
     if (!treeData || treeData.length === 0) return
@@ -221,24 +226,41 @@ export function SourcePanel({ sessionId, treeData }: SourcePanelProps) {
     setFileContent(MOCK_SOURCE_CONTENT)
   }
 
+  const handleDownload = () => {
+    if (!selectedNode) return
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    const fileName = (selectedNode.name || 'source.txt')
+      .replace(/[\\/:*?"<>|]+/g, '_')
+      .replace(/\s+/g, '_')
+    anchor.download = fileName
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
+  }
+
   return (
-    <Box
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        px: 3,
-        py: 2.75,
-        gap: 2,
-        color: 'var(--text-primary)',
-        '& .MuiTypography-root': {
-          color: 'inherit',
-        },
-        '& .MuiListItemText-primary': {
+    <>
+      <Box
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          px: 3,
+          py: 2.75,
+          gap: 2,
           color: 'var(--text-primary)',
-        },
-      }}
-    >
+          '& .MuiTypography-root': {
+            color: 'inherit',
+          },
+          '& .MuiListItemText-primary': {
+            color: 'var(--text-primary)',
+          },
+        }}
+      >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
         <Box
@@ -396,6 +418,8 @@ export function SourcePanel({ sessionId, treeData }: SourcePanelProps) {
                 size="small"
                 variant="outlined"
                 startIcon={<OpenInFullOutlinedIcon sx={{ fontSize: 16 }} />}
+                onClick={() => setIsFullScreen(true)}
+                disabled={!selectedNode}
                 sx={{
                   borderRadius: '999px',
                   fontSize: 12,
@@ -410,6 +434,8 @@ export function SourcePanel({ sessionId, treeData }: SourcePanelProps) {
                 size="small"
                 variant="outlined"
                 startIcon={<DownloadOutlinedIcon sx={{ fontSize: 16 }} />}
+                onClick={handleDownload}
+                disabled={!selectedNode}
                 sx={{
                   borderRadius: '999px',
                   fontSize: 12,
@@ -441,7 +467,67 @@ export function SourcePanel({ sessionId, treeData }: SourcePanelProps) {
           </Box>
         </Box>
       </Box>
-    </Box>
+      </Box>
+
+      <Dialog
+        open={isFullScreen}
+        onClose={() => setIsFullScreen(false)}
+        fullScreen
+        PaperProps={{
+          sx: { bgcolor: 'var(--bg-base)' },
+        }}
+      >
+        <DialogTitle sx={{ color: 'var(--text-primary)', fontWeight: 800, pt: 2 }}>
+          {selectedNode?.name?.trim() || 'source'}
+        </DialogTitle>
+        <DialogContent
+          sx={{
+            p: 0,
+            height: 'calc(100vh - 64px)',
+            overflow: 'auto',
+          }}
+        >
+          <Box
+            sx={{
+              px: 3,
+              py: 2.5,
+              fontFamily:
+                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              fontSize: 12,
+              color: 'var(--code-fg)',
+              background: 'var(--code-bg)',
+              minHeight: '100%',
+            }}
+          >
+            <CodeBlockWithLineNumbers
+              content={selectedNode ? fileContent : 'Select a source file from the tree.'}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            position: 'sticky',
+            bottom: 0,
+            bgcolor: 'var(--bg-base)',
+            py: 1.5,
+            px: 3,
+          }}
+        >
+          <Button
+            variant="contained"
+            onClick={() => setIsFullScreen(false)}
+            sx={{
+              borderRadius: 999,
+              backgroundColor: 'var(--accent)',
+              color: 'var(--bg-base)',
+              '&:hover': { backgroundColor: 'var(--accent-hover)' },
+            }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   )
 }
 
