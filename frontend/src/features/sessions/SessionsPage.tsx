@@ -169,7 +169,7 @@ export function SessionsPage() {
                   size="small"
                   sx={{
                     mb: 1.5,
-                    borderRadius: 'var(--fare-radius-pill)',
+                    borderRadius: 'var(--next-frame-radius-pill)',
                     bgcolor: 'var(--glass-bg)',
                     borderColor: 'var(--border)',
                     color: 'var(--text-primary)',
@@ -204,7 +204,7 @@ export function SessionsPage() {
                     size="medium"
                     onClick={() => navigate('/sessions/new')}
                     sx={{
-                      borderRadius: 'var(--fare-radius-pill)',
+                      borderRadius: 'var(--next-frame-radius-pill)',
                       px: 3.5,
                       py: 1,
                       backgroundColor: 'var(--accent)',
@@ -260,7 +260,7 @@ export function SessionsPage() {
                       size="small"
                       label={`${sessions.length} total`}
                       sx={{
-                        borderRadius: 'var(--fare-radius-pill)',
+                        borderRadius: 'var(--next-frame-radius-pill)',
                         bgcolor: 'var(--glass-bg)',
                         border: '1px solid var(--glass-border)',
                         fontSize: 11,
@@ -477,7 +477,7 @@ export function SessionsPage() {
                       onClick={() => navigate('/sessions/new')}
                       sx={{
                         mt: 0.5,
-                        borderRadius: 'var(--fare-radius-pill)',
+                        borderRadius: 'var(--next-frame-radius-pill)',
                         px: 3,
                       }}
                     >
@@ -499,7 +499,7 @@ export function SessionsPage() {
               variant="outlined"
               onClick={() => navigate('/sessions/new')}
               sx={{
-                borderRadius: 'var(--fare-radius-pill)',
+                borderRadius: 'var(--next-frame-radius-pill)',
                 borderColor: 'var(--border)',
               }}
             >
@@ -565,7 +565,7 @@ function SessionsListSkeleton() {
       </Box>
       <Box
         sx={{
-          borderRadius: 'var(--fare-radius-md)',
+          borderRadius: 'var(--next-frame-radius-md)',
           overflow: 'hidden',
           border: '1px solid var(--glass-border)',
           bgcolor: 'var(--glass-bg)',
@@ -715,7 +715,7 @@ function SessionGroup({
       {viewMode === 'list' ? (
         <Box
           sx={{
-            borderRadius: 'var(--fare-radius-md)',
+            borderRadius: 'var(--next-frame-radius-md)',
             overflow: 'hidden',
             border: '1px solid var(--glass-border)',
             bgcolor: 'var(--glass-bg)',
@@ -885,7 +885,7 @@ function SessionGroup({
               key={session.id}
               className="glass-card stagger-item"
               sx={{
-                borderRadius: 'var(--fare-radius-md)',
+                borderRadius: 'var(--next-frame-radius-md)',
                 color: 'var(--text-primary)',
                 px: 2,
                 py: 1.6,

@@ -261,7 +261,7 @@ export function WorkbenchPage() {
                 width: 450,
                 flexShrink: 0,
                 height: '100%',
-                borderRadius: 'var(--fare-radius-lg)',
+                borderRadius: 'var(--next-frame-radius-lg)',
                 bgcolor: 'var(--bg-surface)',
                 overflow: 'hidden',
               }}
@@ -283,7 +283,7 @@ export function WorkbenchPage() {
                 flex: 1,
                 minWidth: 0,
                 height: '100%',
-                borderRadius: 'var(--fare-radius-lg)',
+                borderRadius: 'var(--next-frame-radius-lg)',
                 bgcolor: 'var(--bg-surface)',
                 overflow: 'hidden',
               }}
@@ -300,7 +300,7 @@ export function WorkbenchPage() {
               flex: 1,
               minWidth: 0,
               height: '100%',
-              borderRadius: 'var(--fare-radius-lg)',
+              borderRadius: 'var(--next-frame-radius-lg)',
               bgcolor: 'var(--bg-surface)',
               overflow: 'hidden',
               position: 'relative',

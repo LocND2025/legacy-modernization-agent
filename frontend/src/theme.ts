@@ -56,10 +56,10 @@ export const theme = createTheme({
       styleOverrides: (themeArg) => ({
         ':root': {
           /* Layout tokens */
-          '--fare-radius-sm': '10px',
-          '--fare-radius-md': '14px',
-          '--fare-radius-lg': '20px',
-          '--fare-radius-pill': '999px',
+          '--next-frame-radius-sm': '10px',
+          '--next-frame-radius-md': '14px',
+          '--next-frame-radius-lg': '20px',
+          '--next-frame-radius-pill': '999px',
 
           /* ------------------------------------------------------------
            * Light mode (default): vibrant gradient + glass glows
@@ -247,7 +247,7 @@ export const theme = createTheme({
 
         '.glass-surface': {
           backgroundColor: 'var(--glass-bg)',
-          borderRadius: 'var(--fare-radius-lg)',
+          borderRadius: 'var(--next-frame-radius-lg)',
           border: '1px solid var(--glass-border)',
           boxShadow:
             'inset 0 1px 0 rgba(255,255,255,0.10), var(--glass-shadow), var(--glass-glow)',
@@ -259,7 +259,7 @@ export const theme = createTheme({
 
         '.glass-card': {
           backgroundColor: 'var(--glass-bg)',
-          borderRadius: 'var(--fare-radius-md)',
+          borderRadius: 'var(--next-frame-radius-md)',
           border: '1px solid var(--glass-border)',
           boxShadow:
             'inset 0 1px 0 rgba(255,255,255,0.10), var(--glass-shadow), var(--glass-glow)',
@@ -270,7 +270,7 @@ export const theme = createTheme({
 
         '.glass-card-bright': {
           backgroundColor: 'var(--bg-surface)',
-          borderRadius: 'var(--fare-radius-md)',
+          borderRadius: 'var(--next-frame-radius-md)',
           border: '1px solid var(--glass-border)',
           boxShadow:
             'inset 0 1px 0 rgba(255,255,255,0.10), var(--glass-shadow)',
@@ -280,7 +280,7 @@ export const theme = createTheme({
         },
 
         '.glass-pill': {
-          borderRadius: 'var(--fare-radius-pill)',
+          borderRadius: 'var(--next-frame-radius-pill)',
           border: '1px solid var(--glass-border)',
           backgroundColor: 'var(--glass-bg)',
           boxShadow:

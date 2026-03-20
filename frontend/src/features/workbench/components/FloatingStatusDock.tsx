@@ -275,7 +275,7 @@ export function FloatingStatusDock({ sessionId, analysisStatus }: FloatingStatus
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            borderRadius: 'var(--fare-radius-lg)',
+            borderRadius: 'var(--next-frame-radius-lg)',
             transform: open ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.96)',
             opacity: open ? 1 : 0,
             transition: 'transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.18s ease',

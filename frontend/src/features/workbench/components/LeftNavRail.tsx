@@ -46,7 +46,7 @@ export function LeftNavRail({ activeItem, onChange }: LeftNavRailProps) {
         width: 90,
         flexShrink: 0,
         height: '100%',
-        borderRadius: 'var(--fare-radius-lg)',
+        borderRadius: 'var(--next-frame-radius-lg)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

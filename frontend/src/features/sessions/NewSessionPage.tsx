@@ -442,7 +442,7 @@ export function NewSessionPage() {
               onClose={() => setErrorMsg(null)}
               sx={{
                 mb: 2.5,
-                borderRadius: 'var(--fare-radius-md)',
+                borderRadius: 'var(--next-frame-radius-md)',
                 bgcolor: 'var(--danger-bg)',
                 border: '1px solid var(--danger-border)',
                 color: 'var(--danger)',
